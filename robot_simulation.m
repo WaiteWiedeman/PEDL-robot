@@ -13,7 +13,8 @@ function y = robot_simulation(tSpan, sysParams, ctrlParams)
         [Xd, Yd, Xdd, Ydd] = referenceTrajectory(t(i), ctrlParams);
         [Th1,Th2,~,~] = InverseKinematics(Xd,Yd,Xdd,Ydd,Xd,Xdd);
         F = force_function(t, x(i,:), Xd, Yd, Xdd, Ydd, ctrlParams);
-        xdot = robot_xdot(x(i,:), F, sysParams);
+        fc = coulomb_friction(x(i,2), sysParams, ctrlParams.friction);
+        xdot = robot_xdot(x(i,:), F, fc, sysParams);
         y(i,1) = t(i); % t
         y(i,2) = x(i, 1); % th0
         y(i,3) = x(i, 3); % th1
@@ -27,10 +28,11 @@ function y = robot_simulation(tSpan, sysParams, ctrlParams)
         y(i,11) = F(1); % u
         y(i,12) = F(2); % t1
         y(i,13) = F(3); % t2
-        y(i,14) = Xd;
-        y(i,15) = Yd;
-        y(i,16) = Th1;
-        y(i,17) = Th2;
+        y(i,14) = fc;
+        y(i,15) = Xd;
+        y(i,16) = Yd;
+        y(i,17) = Th1;
+        y(i,18) = Th2;
     end
 end
 

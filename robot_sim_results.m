@@ -17,19 +17,19 @@ y = robot_simulation(tSpan, sysParams, ctrlParams);
 % yend_sim = out.yout{5}.Values.Data;
 
 plot_states(y(:,1),y(:,2:10));
-plot_forces(y(:,1),y(:,11),y(:,12),y(:,13));
-plot_reference(y(:,1),y(:,2:4),y(:,14:17))
+plot_forces(y(:,1),y(:,11),y(:,12),y(:,13),y(:,14));
+plot_reference(y(:,1),y(:,2:4),y(:,15:18))
 
 [~,~,~,~,xend,yend] = ForwardKinematics(y(:,2:4),sysParams);
-plot_endeffector([xend yend],y(:,14:15))
+plot_endeffector([xend yend],y(:,15:16))
 
 % plot_states(t_sim,[th0_sim th1_sim th2_sim])
 % plot_endeffector([xend_sim yend_sim],0)
 
-function plot_forces(t,u,t1,t2)
+function plot_forces(t,u,t1,t2,fc)
     figure('Position',[500,100,800,800]);
-    plot(t,u,'k-',t,t1,'b-',t,t2,'g-','LineWidth',2);
-    legend("u","$\tau_1$","$\tau_2$","Interpreter","latex");
+    plot(t,u,'k-',t,t1,'b-',t,t2,'g-',t,fc,'m-','LineWidth',2);
+    legend("u","$\tau_1$","$\tau_2$","$f_c$","Interpreter","latex");
 end
 
 function plot_states(t,x)
