@@ -14,7 +14,7 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
             disp("unspecify type of model.")
     end
     for i = 1:numCase
-        y = sdpm_simulation(tSpan, sysParams, ctrlParams);
+        y = robot_simulation(tSpan, sysParams, ctrlParams);
         t = y(:,1);
         x = y(:,2:10);
         [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type);

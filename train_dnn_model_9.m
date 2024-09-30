@@ -5,8 +5,8 @@ function [xTrain,yTrain,layers,options] = train_dnn_model_9(sampleFile, trainPar
     numSamples = trainParams.numSamples;
     
     % generate training dataset
-    % Feature: 6-D initial state (x0) + the predict future time (t)
-    % Label: a predicted state x = [th0,th1,th2,th0d,th1d,th2d]'
+    % Feature: 9-D initial state (x0) + the predict future time (t)
+    % Label: a predicted state x = [th0,th1,th2,th0d,th1d,th2d,th0dd,th1dd,th2dd]'
     % Start from 1 sec to 4 sec with 0.5 sec step 
     initTimes = 0:1; 
     xTrain = [];
@@ -30,7 +30,7 @@ function [xTrain,yTrain,layers,options] = train_dnn_model_9(sampleFile, trainPar
     yTrain = yTrain';
 
     % Create neural network
-    numStates = 6;
+    numStates = 9;
     layers = [
         featureInputLayer(numStates+1, "Name", "input")
         ];
