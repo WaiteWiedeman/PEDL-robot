@@ -1,6 +1,6 @@
 function [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type)
     % predict state use the trained model
-    xp = predict_motion(net, type, t, x, predInterval, trainParams.sequenceStep, ctrlParams.fSpan(2));
+    xp = predict_motion(net, type, t, x, predInterval, trainParams.sequenceStep);
 
     % test reference points
     tTestIndices = zeros(numTime,1);

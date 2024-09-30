@@ -1,10 +1,10 @@
 function xdot = robot_xdot(x, F, fc, sysParams)
-    th0 = x(1);
-    th0d = x(2);
-    th1 = x(3);
-    th1d = x(4);
-    th2 = x(5);
-    th2d = x(6);
+    th0 = x(1); % cart position
+    th0d = x(2); % cart velocity
+    th1 = x(3); % link 1 position
+    th1d = x(4); % link 1 velocity
+    th2 = x(5); % link 2 position
+    th2d = x(6); % link 2 velocity
     
     % system parameters
     L1 = sysParams.L1;

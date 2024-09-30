@@ -1,30 +1,33 @@
 close all; clear; clc;
 
-% Mass-Spring-Damper-Pendulum Dynamics System Parameters
+% Two-link Planar Robot on Cart Dynamics System Parameters
 sysParams = params_system();
 ctrlParams = params_control();
-tSpan = [0,5];
-% tSpan = 0:0.01:5;
+tSpan = [0,5]; %0:0.01:5;
 
+% run simulation
 y = robot_simulation(tSpan, sysParams, ctrlParams);
 
-% out = sim("robot_model.slx");
-% t_sim = out.tout;
-% th0_sim = out.yout{1}.Values.Data;
-% th1_sim = out.yout{2}.Values.Data;
-% th2_sim = out.yout{3}.Values.Data;
-% xend_sim = out.yout{4}.Values.Data;
-% yend_sim = out.yout{5}.Values.Data;
+% run simscape model
+y_simscape = run_simscape();
 
+% plot states, forces, and states against reference
 plot_states(y(:,1),y(:,2:10));
 plot_forces(y(:,1),y(:,11),y(:,12),y(:,13),y(:,14));
 plot_reference(y(:,1),y(:,2:4),y(:,15:18))
 
+% solve forward kinematics and plot end effector position
 [~,~,~,~,xend,yend] = ForwardKinematics(y(:,2:4),sysParams);
-plot_endeffector([xend yend],y(:,15:16))
+plot_endeffector([xend yend],y(:,15:16)) %y(:,15:16)
 
-% plot_states(t_sim,[th0_sim th1_sim th2_sim])
-% plot_endeffector([xend_sim yend_sim],0)
+% plot states, forces, and states against reference for simscape model
+plot_states(y_simscape(:,1),y_simscape(:,2:10));
+plot_forces(y_simscape(:,1),y_simscape(:,11),y_simscape(:,12),y_simscape(:,13),y_simscape(:,14));
+plot_reference(y_simscape(:,1),y_simscape(:,2:4),y_simscape(:,15:18))
+
+% solve forward kinematics and plot end effector position for simscape model
+[~,~,~,~,xend,yend] = ForwardKinematics(y_simscape(:,2:4),sysParams);
+plot_endeffector([xend yend],y_simscape(:,15:16)) %y(:,15:16)
 
 function plot_forces(t,u,t1,t2,fc)
     figure('Position',[500,100,800,800]);
@@ -94,7 +97,7 @@ function plot_endeffector(x,refs)
         hold on
         plot(refs(:,1),refs(:,2),'LineWidth',2);
     end
-    axis([-1 3 -1 3])
+    axis padded
     % xline(1,'k--','LineWidth',2);
     ylabel("Y");
     xlabel("X");

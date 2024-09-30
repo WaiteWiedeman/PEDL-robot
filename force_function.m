@@ -1,4 +1,4 @@
-function F = force_function(t, x, Xd, Yd, Xdd, Ydd, ctrlParams)
+function F = force_function(x, Xd, Yd, Xdd, Ydd, ctrlParams)
     F = zeros(3,1);
 
     th0 = x(1);

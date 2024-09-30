@@ -1,26 +1,44 @@
-function F = physics_law(X,Xd,Xdd)
-    q1 = X(1,:);
-    q2 = X(2,:);
-    q1d = Xd(1,:);
-    q2d = Xd(2,:);
-    q1dd = Xdd(1,:);
-    q2dd = Xdd(2,:);
+function F = physics_law(Y,sysParams)
+    th0 = Y(1); % cart position
+    th1 = Y(2); % link 1 position
+    th2 = Y(3); % link 2 position
+    th0d = Y(4); % cart velocity
+    th1d = Y(5); % link 1 velocity
+    th2d = Y(6); % link 2 velocity
+    th0dd = Y(7); % cart acceleration
+    th1dd = Y(8); % link 1 acceleration
+    th2dd = Y(9); % link 2 acceleration
+    
+    % state vectors
+    thd = [th0d; th1d; th2d];
+    thdd = [th0dd; th1dd; th2dd];
 
     % system parameters
-    sysParams = params_system();
-    K = sysParams.K;
-    C = sysParams.C;
-    L = sysParams.L;
+    L1 = sysParams.L1;
+    L2 = sysParams.L2;
     G = sysParams.G;
+    M0 = sysParams.M0;
     M1 = sysParams.M1;
     M2 = sysParams.M2;
+    l1 = L1/2;
+    l2 = L2/2;
+    I1 = (1/12)*M1*L1^2;
+    I2 = (1/12)*M2*L2^2;
 
     % columb friction
     ctrlParams = params_control();
-    fc = coulomb_friction(q1d, sysParams, ctrlParams.friction);
-    
-    % Lagrangian equation: F - fc = M*q_ddot + V*q_dot + G
-    f1 = (M1+M2)*q1dd + M2*L*(cos(q2).*q2dd) + C*q1d - M2*L*(sin(q2).*q2d.^2) + K*q1 + fc;
-    f2 = M2*L*(cos(q2).*q1dd) + M2*L^2*q2dd + M2*G*L*sin(q2);
-    F = [f1; f2];
+    fc = coulomb_friction(th0d, sysParams, ctrlParams.friction);
+
+    % solve the Lagrange equation F = D*thdd + C*thd + G
+    D = [                M0+M1+M2                     -((M1*l1+M2*L1)*sin(th1)+M2*l2*sin(th1+th2))         -M2*l2*sin(th1+th2)
+        -l2*M2*sin(th1+th2)-(L1*M2+l1*M1)*sin(th1)   L1^2*M2+l1^2*M1+l2^2*M2+2*L1*l2*M2*cos(th2)+I1       l2^2*M2+L1*l2*M2*cos(th2)
+                   -l2*M2*sin(th1+th2)                           l2^2*M2+L1*l2*M2*cos(th2)                      M2*l2^2 + I2       ];
+    C = [        0             -((l1*M1+L1*M2)*cos(th1)+M2*l2*cos(th1+th2))*th1d   -M2*l2*cos(th1+th2)*(2*th1d+th2d)
+                 0                                    0                             -L1*l2*M2*sin(th2)*(2*th1d+th2d)
+                 0                           L1*l2*M2*sin(th2)*th1d                                  0               ];
+    G = [                      0
+         (L1*M2+l1*M1)*G*cos(th1)+G*l2*M2*cos(th1+th2)
+                      G*l2*M2*cos(th1+th2)            ];
+
+    F = D*thdd + C*thd + G + [fc;0;0];
 end
