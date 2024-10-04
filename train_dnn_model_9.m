@@ -8,7 +8,7 @@ function [xTrain,yTrain,layers,options] = train_dnn_model_9(sampleFile, trainPar
     % Feature: 9-D initial state (x0) + the predict future time (t)
     % Label: a predicted state x = [th0,th1,th2,th0d,th1d,th2d,th0dd,th1dd,th2dd]'
     % Start from 1 sec to 4 sec with 0.5 sec step 
-    initTimes = 0:1; 
+    initTimes = 0:trainParams.initTimeStep:2; 
     xTrain = [];
     yTrain = [];
     for i = 1:numSamples

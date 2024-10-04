@@ -3,13 +3,15 @@ close all; clear; clc;
 % Two-link Planar Robot on Cart Dynamics System Parameters
 sysParams = params_system();
 ctrlParams = params_control();
+% ctrlParams.method = "origin";
 tSpan = [0,5]; %0:0.01:5;
+x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
 
 % run simulation
-y = robot_simulation(tSpan, sysParams, ctrlParams);
+y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
 
 % run simscape model
-y_simscape = run_simscape();
+% y_simscape = run_simscape();
 
 % plot states, forces, and states against reference
 plot_states(y(:,1),y(:,2:10));
@@ -21,13 +23,13 @@ plot_reference(y(:,1),y(:,2:4),y(:,15:18))
 plot_endeffector([xend yend],y(:,15:16)) %y(:,15:16)
 
 % plot states, forces, and states against reference for simscape model
-plot_states(y_simscape(:,1),y_simscape(:,2:10));
-plot_forces(y_simscape(:,1),y_simscape(:,11),y_simscape(:,12),y_simscape(:,13),y_simscape(:,14));
-plot_reference(y_simscape(:,1),y_simscape(:,2:4),y_simscape(:,15:18))
-
-% solve forward kinematics and plot end effector position for simscape model
-[~,~,~,~,xend,yend] = ForwardKinematics(y_simscape(:,2:4),sysParams);
-plot_endeffector([xend yend],y_simscape(:,15:16)) %y(:,15:16)
+% plot_states(y_simscape(:,1),y_simscape(:,2:10));
+% plot_forces(y_simscape(:,1),y_simscape(:,11),y_simscape(:,12),y_simscape(:,13),y_simscape(:,14));
+% plot_reference(y_simscape(:,1),y_simscape(:,2:4),y_simscape(:,15:18))
+% 
+% % solve forward kinematics and plot end effector position for simscape model
+% [~,~,~,~,xend,yend] = ForwardKinematics(y_simscape(:,2:4),sysParams);
+% plot_endeffector([xend yend],y_simscape(:,15:16)) %y(:,15:16)
 
 function plot_forces(t,u,t1,t2,fc)
     figure('Position',[500,100,800,800]);

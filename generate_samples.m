@@ -16,7 +16,9 @@ function dataFile = generate_samples(sysParams, ctrlParams, trainParams)
         samples = {};
         for i = 1:trainParams.numSamples
             %disp("generate data for " + num2str(i) + "th sample.");
-            y = robot_simulation(tSpan, sysParams, ctrlParams);
+            x0 = [-1; -2*pi; -2*pi] + [2; 4*pi; 4*pi].*rand(3,1); % th0, th1, th2
+            x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
+            y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
             state = y';
             fname=['data\input',num2str(i),'.mat'];
             save(fname, 'state');

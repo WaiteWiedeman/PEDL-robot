@@ -1,10 +1,8 @@
-function y = robot_simulation(tSpan, sysParams, ctrlParams)
+function y = robot_simulation(tSpan, x0, sysParams, ctrlParams)
     % ODE solver
     if ctrlParams.fixedTimeStep ~= 0
         tSpan = tSpan(1):ctrlParams.fixedTimeStep:tSpan(2);
     end
-    x0 = [-1; -2*pi; -2*pi] + [2; 2*pi; 2*pi].*rand(3,1); % th0, th1, th2
-    x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
     [t,x] = ode45(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0);
     % sample time points
     [t,x] = select_samples(ctrlParams, t, x);

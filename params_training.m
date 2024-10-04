@@ -14,6 +14,6 @@ function params = params_training()
     params.initTimeStep = 1;
     params.initLearningRate = 1e-3; % 0.01,0.001,0.0001
     params.stopLearningRate = 1e-7;
-    params.lrDropFactor = 0.5;
+    params.lrDropFactor = 0.2;
     params.lrDropEpoch = 40;
 end

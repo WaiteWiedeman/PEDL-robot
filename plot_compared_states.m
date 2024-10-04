@@ -1,5 +1,6 @@
 function plot_compared_states(t,x,tp,xp)
-    labels= ["$q_1$","$q_2$","$\dot{q}_1$","$\dot{q}_2$","$\ddot{q}_1$","$\ddot{q}_2$"];
+    labels= ["$\theta_0$","$\theta_1$","$\theta_2$","$\dot{\theta}_0$","$\dot{\theta}_1$","$\dot{\theta}_2$",...
+        "$\ddot{\theta}_0$","$\ddot{\theta}_1$","$\ddot{\theta}_2$"];
     figure('Position',[500,200,600,600]);
     tiledlayout("vertical","TileSpacing","tight")
     numState = size(xp);
