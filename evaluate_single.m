@@ -1,10 +1,10 @@
-function [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type)
+function [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type, initTime)
     % predict state use the trained model
-    xp = predict_motion(net, type, t, x, predInterval, trainParams.sequenceStep);
+    xp = predict_motion(net, type, t, x, predInterval, trainParams.sequenceStep, initTime);
 
     % test reference points
     tTestIndices = zeros(numTime,1);
-    refTime = linspace(1, tSpan(2), numTime); 
+    refTime = linspace(t(1), tSpan(2), numTime); 
     for k = 1:numTime
         indices = find(t <= refTime(k), 1, 'last');
         tTestIndices(k) = indices(end);

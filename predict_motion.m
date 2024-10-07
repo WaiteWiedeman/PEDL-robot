@@ -1,6 +1,6 @@
-function xp = predict_motion(net, type, t, x, predInterval, seqSteps)
+function xp = predict_motion(net, type, t, x, predInterval, seqSteps, initTime)
     numTime = length(t);
-    initIdx = find(t > 0, 1, 'first'); % start where force stop acting
+    initIdx = find(t > initTime, 1, 'first'); % start where force stop acting
     switch type
         case "dnn9"
             xp = zeros(numTime, 9);

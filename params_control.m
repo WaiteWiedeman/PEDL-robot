@@ -1,9 +1,9 @@
 function params = params_control()
     params = struct();
     % PID gains for each input (Kp, Ki, Kd)
-    params.PID0 = [20000 10 10000]; 
-    params.PID1 = [20000 10 10000];
-    params.PID2 = [20000 10 10000];
+    params.PID0 = [12000 10 10000]; 
+    params.PID1 = [12000 10 10000];
+    params.PID2 = [12000 10 10000];
     params.refx = 1; % center of reference trajectory in x
     params.refy = 1; % center of reference trajectory in y
     params.refrad = 0.5; % radius of reference trajectory 

@@ -1,4 +1,4 @@
-function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan, predInterval, numCase, numTime, type, show)
+function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan, predInterval, numCase, numTime, type, show, initTime)
     % evaluate time span, larger time span will increase the simulation
     % time when complicated friction involved
     th0 = linspace(-1,1,numCase);
@@ -20,7 +20,7 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
         y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
         t = y(:,1);
         x = y(:,2:10);
-        [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type);
+        [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type, initTime);
         if show
             disp("evaluate " + num2str(i) + " th case, mean square err: " + num2str(mean(rmseErr, "all")));
         end
