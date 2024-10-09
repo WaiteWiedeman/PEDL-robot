@@ -10,7 +10,7 @@ trainParams = params_training();
 trainParams.type = "dnn9"; % "dnn3","lstm3","pinn3","dnn6","lstm6","pinn6","dnn9", "lstm9","pinn9"
 ctrlParams.method = "interval"; % random, interval, origin
 numTime = 1000;
-tSpan = [0,5]; % [0,5] 0:0.01:5
+tSpan = 0:0.01:5; % [0,5] 0:0.01:5
 predInterval = 5; 
 
 %% simulation 
@@ -18,12 +18,16 @@ x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
 y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
 t = y(:,1);
 x = y(:,2:10);
-[xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, trainParams.type,0.5);
-plot_compared_states(t,x,t,xp)
+[xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, trainParams.type,1);
+% plot_compared_states(t,x,t,xp)
 % solve forward kinematics and plot end effector position
-[~,~,~,~,xend,yend] = ForwardKinematics(x(:,1:3),sysParams);
-[~,~,~,~,xpend,ypend] = ForwardKinematics(xp(:,1:3),sysParams);
-plot_endeffector([xend yend],[xpend ypend],0) %y(:,15:16)
+[~,~,~,~,~,~,xend,yend] = ForwardKinematics(x(:,1:3),sysParams);
+[~,~,~,~,~,~,xpend,ypend] = ForwardKinematics(xp(:,1:3),sysParams);
+% plot_endeffector([xend yend],[xpend ypend],0) %y(:,15:16)
+% make image and video
+tPred = [1,5];
+% MakeImage(sysParams, t, x, xp, tPred)
+MakeVideo(sysParams, t, x, xp, tPred)
 disp(mean(rmseErr,'all'))
 
 %% evaluate for four states
