@@ -3,7 +3,10 @@ close all; clear; clc;
 % Two-link Planar Robot on Cart Dynamics System Parameters
 sysParams = params_system();
 ctrlParams = params_control();
-% ctrlParams.method = "origin";
+ctrlParams.method = "origin";
+ctrlParams.PID0(1) = 5000 + 20000*rand;
+ctrlParams.PID1(1) = 5000 + 20000*rand;
+ctrlParams.PID2(1) = 5000 + 20000*rand;
 tSpan = [0,5]; %0:0.01:5;
 x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
 
@@ -19,7 +22,7 @@ plot_forces(y(:,1),y(:,11),y(:,12),y(:,13),y(:,14));
 plot_reference(y(:,1),y(:,2:4),y(:,15:18))
 
 % solve forward kinematics and plot end effector position
-[~,~,~,~,xend,yend] = ForwardKinematics(y(:,2:4),sysParams);
+[~,~,~,~,~,~,xend,yend] = ForwardKinematics(y(:,2:4),sysParams);
 plot_endeffector([xend yend],y(:,15:16)) %y(:,15:16)
 
 % plot states, forces, and states against reference for simscape model

@@ -12,6 +12,6 @@ function params = params_control()
     % To many data points will be generated if using default ode options
     % To select small set of data for training with different methods.
     params.method = "random"; % random, interval, origin
-    params.numPoints = 1000;
+    params.numPoints = 500;
     params.interval = 1e-3;
 end

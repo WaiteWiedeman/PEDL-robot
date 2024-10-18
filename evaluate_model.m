@@ -3,6 +3,7 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
     % time when complicated friction involved
     th0 = linspace(-1,1,numCase);
     th1 = linspace(-2*pi,2*pi,numCase);
+    P = linspace(5000,25000,numCase); % Proportional Gain
 
     % reference time points 
     switch trainParams.type
@@ -17,6 +18,9 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
     end
     for i = 1:numCase
         x0 = [th0(i); 0; th1(i); 0; th1(i); 0]; % th0, th0d, th1, th1d, th2, th2d
+        ctrlParams.PID0(1) = P;
+        ctrlParams.PID1(1) = P;
+        ctrlParams.PID2(1) = P;
         y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
         t = y(:,1);
         x = y(:,2:10);
