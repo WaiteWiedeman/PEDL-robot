@@ -2,32 +2,37 @@
 close all; clear; clc;
 
 %% test variables
-file = "best_dnn_models";
-net = load(file).trainedNetwork;
+file = "best_dnn_models_1";
+net = load(file).dnn9_8_256_1000; % trainedNetwork
 sysParams = params_system();
 ctrlParams = params_control();
 trainParams = params_training();
 trainParams.type = "dnn9"; % "dnn3","lstm3","pinn3","dnn6","lstm6","pinn6","dnn9", "lstm9","pinn9"
 ctrlParams.method = "interval"; % random, interval, origin
 numTime = 1000;
-tSpan = 0:0.01:5; % [0,5] 0:0.01:5
+tSpan = 0:0.01:3; % [0,5] 0:0.01:5
 predInterval = 5; 
 
-%% simulation 
+%% simulation and prediction
 x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
 y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
 t = y(:,1);
 x = y(:,2:10);
+ref = y(:,15:18);
 [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, trainParams.type,1);
-% plot_compared_states(t,x,t,xp)
+
+%% Plots
+% plot_compared_states(t,x,t,xp,"position",ref)
+% plot_compared_states(t,x,t,xp,"velocity",ref)
+% plot_compared_states(t,x,t,xp,"acceleration",ref)
 % solve forward kinematics and plot end effector position
 [~,~,~,~,~,~,xend,yend] = ForwardKinematics(x(:,1:3),sysParams);
 [~,~,~,~,~,~,xpend,ypend] = ForwardKinematics(xp(:,1:3),sysParams);
-% plot_endeffector([xend yend],[xpend ypend],0) %y(:,15:16)
+% plot_endeffector([xend yend],[xpend ypend],y(:,15:16)) %y(:,15:16)
 % make image and video
-tPred = [1,5];
-% MakeImage(sysParams, t, x, xp, tPred)
-MakeVideo(sysParams, t, x, xp, tPred)
+tPred = [1,2];
+MakeImage(sysParams, t, x, xp, ref, tPred)
+MakeVideo(sysParams, t, x, xp, ref,[xend yend],[xpend ypend], tPred)
 disp(mean(rmseErr,'all'))
 
 %% evaluate for four states
@@ -49,10 +54,10 @@ function plot_endeffector(x,xp,refs)
     plot(xp(:,1),xp(:,2),'r--','LineWidth',2)
     if refs ~= 0
         hold on
-        plot(refs(:,1),refs(:,2),'LineWidth',2);
+        plot(refs(:,1),refs(:,2),'k:','LineWidth',2);
     end
     axis padded
-    legend("Reference","Prediction","Location","best","FontName","Arial");
+    legend("Ground Truth","Prediction","Reference","Location","best","FontName","Arial");
     title('End Effector Position')
     % xline(1,'k--','LineWidth',2);
     ylabel("Y");
