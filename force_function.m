@@ -1,6 +1,11 @@
-function F = force_function(t, x, Xd, Yd, Xdd, Ydd, ctrlParams)
+function F = force_function(t, x, Xc, Xcd, Th1, Th2, Om1, Om2, ctrlParams)
     persistent ti e0 e1 e2
-
+    if t == 0
+        ti = [];
+        e0 = [];
+        e1 = [];
+        e2 = [];
+    end
     ti(end+1) = t;
 
     F = zeros(3,1);
@@ -16,11 +21,9 @@ function F = force_function(t, x, Xd, Yd, Xdd, Ydd, ctrlParams)
     PID1 = ctrlParams.PID1;
     PID2 = ctrlParams.PID2;
 
-    e0(end+1) = Xd - th0;
-    e0d = Xdd - th0d;
+    e0(end+1) = Xc - th0;
+    e0d = Xcd - th0d;
     F(1) = PID0(1)*e0(end) + PID0(2)*trapz(ti,e0,2) + PID0(3)*e0d;
-
-    [Th1,Th2,Om1,Om2] = InverseKinematics(Xd,Yd,Xdd,Ydd,Xd,Xdd);
 
     e1(end+1) = Th1 - th1;
     e1d = Om1 - th1d;

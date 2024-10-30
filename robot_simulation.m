@@ -3,18 +3,18 @@ function y = robot_simulation(tSpan, x0, sysParams, ctrlParams)
     if ctrlParams.fixedTimeStep ~= 0
         tSpan = tSpan(1):ctrlParams.fixedTimeStep:tSpan(2);
     end
-    tic
+    % tic
     [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0);
-    tEnd = toc;
-    disp("ode done, simulation time: " + num2str(tEnd))
+    % tEnd = toc;
+    % disp("ode done, simulation time: " + num2str(tEnd))
     % sample time points
     [t,x] = select_samples(ctrlParams, t, x);
     numTime = length(t);
-    y = zeros(numTime, 18); 
+    y = zeros(numTime, 19); 
     for i = 1 : numTime
-        [Xd, Yd, Xdd, Ydd] = referenceTrajectory(t(i), ctrlParams);
-        [Th1,Th2,~,~] = InverseKinematics(Xd,Yd,Xdd,Ydd,Xd,Xdd);
-        F = force_function(t(i), x(i,:), Xd, Yd, Xdd, Ydd, ctrlParams);
+        [Xd, Yd, Xdd, Ydd, Xc, Xcd] = referenceTrajectory(t(i), ctrlParams);
+        [Th1,Th2,Om1,Om2] = InverseKinematics(Xd,Yd,Xdd,Ydd,Xc,Xcd);
+        F = force_function(t(i), x(i,:), Xc, Xcd, Th1, Th2, Om1, Om2, ctrlParams);
         fc = coulomb_friction(x(i,2), sysParams, ctrlParams.friction);
         xdot = robot_xdot(x(i,:), F, fc, sysParams);
         y(i,1) = t(i); % t
@@ -35,6 +35,7 @@ function y = robot_simulation(tSpan, x0, sysParams, ctrlParams)
         y(i,16) = Yd; % Y desired
         y(i,17) = Th1; % Th1 desired
         y(i,18) = Th2; % Th2 desired 
+        y(i,19) = Xc; % desired cart position
     end
 end
 
