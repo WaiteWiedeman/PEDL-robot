@@ -1,11 +1,13 @@
 function params = params_control()
     params = struct();
     % PID gains for each input (Kp, Ki, Kd)
-    params.PID0 = [12000 10 10000]; 
-    params.PID1 = [12000 10 10000];
-    params.PID2 = [12000 10 10000];
+    params.PID0 = [508 200 171]; 
+    params.PID1 = [311 206 148];
+    params.PID2 = [327 414 222];
     params.refx = 1; % center of reference trajectory in x
     params.refy = 1; % center of reference trajectory in y
+    params.a = 5; % width of reference point range
+    params.b = 2; % height of reference point range
     params.refrad = 0.5; % radius of reference trajectory 
     params.friction = "andersson"; % none, smooth, andersson, specker
     params.fixedTimeStep = 0; % 0 for varying time step, else for fixed stime step in simulation e.g., 1e-2
