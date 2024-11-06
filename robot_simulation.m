@@ -4,7 +4,14 @@ function y = robot_simulation(tSpan, x0, sysParams, ctrlParams)
         tSpan = tSpan(1):ctrlParams.fixedTimeStep:tSpan(2);
     end
     % tic
-    [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0);
+    switch ctrlParams.solver
+        case "normal"
+            % [t,x] = ode45(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0);
+            opts = odeset('RelTol',1e-5,'AbsTol',1e-7); %'MaxStep',1e-2);
+            [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0,opts); %); %
+        case "stiff"
+            [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0); %,opts); %); %
+    end
     % tEnd = toc;
     % disp("ode done, simulation time: " + num2str(tEnd))
     % sample time points

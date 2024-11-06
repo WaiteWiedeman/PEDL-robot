@@ -1,4 +1,4 @@
-function [h1,h2,h3]=robot_plot_frame(Xcg_pred,Ycg,cartHalfLen,Xcg,xend1,yend1,xend2,yend2,xpend1,ypend1,xpend2,ypend2,ref)
+function [h1,h2,h3,h4]=robot_plot_frame(ctrlParams,Xcg_pred,Ycg,cartHalfLen,Xcg,xend1,yend1,xend2,yend2,xpend1,ypend1,xpend2,ypend2,ref)
     % True system
     % cart
     patch(Xcg+[-cartHalfLen cartHalfLen cartHalfLen -cartHalfLen], ...
@@ -26,5 +26,12 @@ function [h1,h2,h3]=robot_plot_frame(Xcg_pred,Ycg,cartHalfLen,Xcg,xend1,yend1,xe
     % plots reference being tracked by arm
     Xd = ref(:,1);
     Yd = ref(:,2);
-    h3 = plot(Xd,Yd,'k','LineWidth', 1, 'LineStyle',':', "DisplayName", "Reference Trajectory");
+    h3 = plot(Xd,Yd,'Marker','x','MarkerSize',14,'MarkerEdgeColor','k', "DisplayName", "Objective");
+    xline(ctrlParams.a-2,'k--', 'LineWidth',1);
+    xline(-ctrlParams.a+2,'k--', 'LineWidth',1);
+
+    % plots boundary of random objective points
+    boundx = ctrlParams.a*cos(0:0.01:2*pi);
+    boundy = ctrlParams.b*sin(0:0.01:2*pi);
+    h4 = plot(boundx,boundy,'k','LineWidth', 2, 'LineStyle',':', "DisplayName", "Objective bound");
 end
