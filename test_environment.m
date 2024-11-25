@@ -2,26 +2,26 @@
 close all; clear; clc;
 
 %% test variables
-file = "best_dnn_models_3";
-net = load(file).dnn9_512_4_1500; % trainedNetwork dnn9_4_512_1500
+file = "best_dnn_models_5";
+net = load(file).dnn9_256_4_800; % trainedNetwork dnn9_4_512_1500
 sysParams = params_system();
 ctrlParams = params_control();
 trainParams = params_training();
 trainParams.type = "dnn9"; % "dnn3","lstm3","pinn3","dnn6","lstm6","pinn6","dnn9", "lstm9","pinn9"
 ctrlParams.method = "origin"; % random, interval, origin
-ctrlParams.solver = "normal";
+ctrlParams.solver = "stiffhr";
 numTime = 100;
-tSpan = [0,15]; % [0,5] 0:0.01:5
-predInterval = 20; 
+tSpan = [0,45]; % [0,5] 0:0.01:5
+predInterval = tSpan(2); 
 
 %% simulation and prediction
-% x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
+x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
 theta = 2*pi*rand;
 rad = sqrt(rand);
 ctrlParams.refx = ctrlParams.a*rad*cos(theta);
 ctrlParams.refy = ctrlParams.b*rad*sin(theta);
-x0 = [-1; 0; 0] + [2; 2*pi; 2*pi].*rand(3,1); % th0, th1, th2
-x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
+% x0 = [-1; 0; 0] + [2; 2*pi; 2*pi].*rand(3,1); % th0, th1, th2
+% x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
 y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
 t = y(:,1);
 x = y(:,2:10);
@@ -37,9 +37,9 @@ plot_compared_states(t,x,t,xp,"acceleration",y(:,[19 17 18]));
 [~,~,~,~,~,~,xpend,ypend] = ForwardKinematics(xp(:,1:3),sysParams);
 plot_endeffector([xend yend],[xpend ypend],y(:,15:16)) %y(:,15:16)
 % make image and video
-tPred = [1,15];
+tPred = [1,45];
 MakeImage(ctrlParams, sysParams, t, x, xp, ref, tPred)
-MakeVideo(ctrlParams, sysParams, t, x, xp, ref,[xend yend],[xpend ypend], tPred)
+% MakeVideo(ctrlParams, sysParams, t, x, xp, ref,[xend yend],[xpend ypend], tPred)
 disp(mean(rmseErr,'all'))
 
 %% evaluate for four states
@@ -67,8 +67,8 @@ function plot_endeffector(x,xp,refs)
     legend("Ground Truth","Prediction","Reference","Location","best","FontName","Arial");
     title('End Effector Position')
     % xline(1,'k--','LineWidth',2);
-    ylabel("Y");
-    xlabel("X");
+    ylabel("Y [m]");
+    xlabel("X [m]");
     set(get(gca,'ylabel'),'rotation',0);
     set(gca, 'FontSize', 15);
     set(gca, 'FontName', 'Arial');

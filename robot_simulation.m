@@ -3,23 +3,22 @@ function y = robot_simulation(tSpan, x0, sysParams, ctrlParams)
     if ctrlParams.fixedTimeStep ~= 0
         tSpan = tSpan(1):ctrlParams.fixedTimeStep:tSpan(2);
     end
-    % tic
+    
     switch ctrlParams.solver
-        case "normal"
-            % [t,x] = ode45(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0);
-            opts = odeset('RelTol',1e-5,'AbsTol',1e-7); %'MaxStep',1e-2);
-            [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0,opts); %); %
-        case "stiff"
-            [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0); %,opts); %); %
+        case "nonstiff"
+            [t,x] = ode45(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0);
+        case "stiffhr"
+            opts = odeset('RelTol',1e-7,'AbsTol',1e-9); 
+            [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0,opts); 
+        case "stifflr"
+            opts = odeset('RelTol',1e-4,'AbsTol',1e-5); 
+            [t,x] = ode15s(@(t,x) robot_system(t, x, sysParams, ctrlParams), tSpan, x0,opts);
     end
-    % tEnd = toc;
-    % disp("ode done, simulation time: " + num2str(tEnd))
-    % sample time points
     [t,x] = select_samples(ctrlParams, t, x);
     numTime = length(t);
     y = zeros(numTime, 19); 
     for i = 1 : numTime
-        [Xd, Yd, Xdd, Ydd, Xc, Xcd] = referenceTrajectory(t(i), ctrlParams);
+        [Xd, Yd, Xdd, Ydd, Xc, Xcd] = referenceTrajectory(t(i), ctrlParams,sysParams);
         [Th1,Th2,Om1,Om2] = InverseKinematics(Xd,Yd,Xdd,Ydd,Xc,Xcd);
         F = force_function(t(i), x(i,:), Xc, Xcd, Th1, Th2, Om1, Om2, ctrlParams);
         fc = coulomb_friction(x(i,2), sysParams, ctrlParams.friction);

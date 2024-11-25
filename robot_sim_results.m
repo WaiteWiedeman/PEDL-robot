@@ -5,15 +5,17 @@ close all; clear; clc;
 sysParams = params_system();
 ctrlParams = params_control();
 ctrlParams.method = "origin";
-tSpan = [0,20]; %0:0.01:5;
+ctrlParams.solver = "stiffhr"; % "stiff" or "nonstiff"
+tSpan = [0,60]; %0:0.01:5;
 
 %% run simulation and plot states, forces, and states against reference
 theta = 2*pi*rand;
 rad = sqrt(rand);
-ctrlParams.refx = ctrlParams.a*rad*cos(theta);
-ctrlParams.refy = ctrlParams.b*rad*sin(theta);
-x0 = [-1; 0; 0] + [2; 2*pi; 2*pi].*rand(3,1); % th0, th1, th2
-x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
+ctrlParams.refx = 1; %ctrlParams.a*rad*cos(theta);
+ctrlParams.refy = 1; %ctrlParams.b*rad*sin(theta);
+% x0 = [-1; 0; 0] + [2; 2*pi; 2*pi].*rand(3,1); % th0, th1, th2
+% x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
+x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
 
 y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
 
@@ -90,6 +92,43 @@ ylabel('Coulomb Friction Force (N)');
 set(gca, 'FontSize', 15);
 set(gca, 'FontName', 'Arial');
 disp(slopeangle)
+
+%% random points
+t=0:0.01:5;
+x = ctrlParams.a*cos((2*pi/5)*t);
+y = ctrlParams.b*sin((2*pi/5)*t);
+
+numCase = 100;
+theta = linspace(0,2*pi,numCase);
+rad = linspace(0,1,numCase);
+
+for i = 1:numCase
+    % theta = 2*pi*rand;
+    % rad = sqrt(rand);
+    ctrlParams.refx = ctrlParams.a*rad(i)*cos(theta(i));
+    ctrlParams.refy = ctrlParams.b*rad(i)*sin(theta(i));
+    Xd(i) = ctrlParams.refx;
+    Yd(i) = ctrlParams.refy;
+end
+
+figure('Position',[500,100,800,800]);
+plot(x,y,'k-',Xd,Yd,'b*','LineWidth',1)
+axis padded
+ylabel("Y");
+xlabel("X");
+set(get(gca,'ylabel'),'rotation',0);
+set(gca, 'FontSize', 15);
+set(gca, 'FontName', 'Arial');
+legend("Objective Bounds", "Random Objective Point")
+
+%%
+figure('Position',[500,200,800,800]);
+plot(y(:,1),y(:,2),'b-o','LineWidth',2);
+ylabel("$\theta_0$","Interpreter","latex");
+set(get(gca,'ylabel'),'rotation',0);
+set(gca, 'FontSize', 15);
+set(gca, 'FontName', "Arial")
+xlabel("Time (s)");
 
 %% functions
 function plot_forces(t,u,t1,t2,fc)
