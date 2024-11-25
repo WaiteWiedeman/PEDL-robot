@@ -60,7 +60,7 @@ function [xTrain,yTrain,layers,options] = train_pinn_model_9(sampleFile, trainPa
     layers = [
         layers
         fullyConnectedLayer(numStates, "Name", "output")
-        weightedLossLayer("mse")]; % weightedLossLayer("mse")
+        weightedPINNLossLayer("mse")]; % weightedLossLayer("mse")
 
     layers = layerGraph(layers);
     % plot(lgraph);
