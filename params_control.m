@@ -21,5 +21,5 @@ function params = params_control()
     params.method = "random"; % random, interval, origin
     params.numPoints = 500;
     params.interval = 1e-3;
-    params.solver = "stiff"; % "stifflr" (low-res) or "stiffhr" (high-res) or "nonstiff"
+    params.solver = "stifflr"; % "stifflr" (low-res) or "stiffhr" (high-res) or "nonstiff"
 end

@@ -1,6 +1,6 @@
 function dataFile = generate_samples(sysParams, ctrlParams, trainParams)
 % Generate samples and save the data file into a subfolder "data\"
-    tSpan = [0,5];
+    tSpan = [0,60];
     dataFile = "trainingSamples.mat";
     % check whether need to regenerate samples
     regenerate_samples = 1; % by default, regrenerate samples
@@ -16,10 +16,8 @@ function dataFile = generate_samples(sysParams, ctrlParams, trainParams)
         samples = {};
         for i = 1:trainParams.numSamples
             %disp("generate data for " + num2str(i) + "th sample.");
-            ctrlParams.PID0(1) = 5000 + 20000*rand;
-            ctrlParams.PID1(1) = 5000 + 20000*rand;
-            ctrlParams.PID2(1) = 5000 + 20000*rand;
-            x0 = [-1; -2*pi; -2*pi] + [2; 4*pi; 4*pi].*rand(3,1); % th0, th1, th2
+            % x0 = [-1; -2*pi; -2*pi] + [2; 4*pi; 4*pi].*rand(3,1); % th0, th1, th2
+            x0 = zeros(3,1);
             x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
             y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
             state = y';
