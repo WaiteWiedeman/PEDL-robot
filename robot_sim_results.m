@@ -5,14 +5,17 @@ close all; clear; clc;
 sysParams = params_system();
 ctrlParams = params_control();
 ctrlParams.method = "origin";
-ctrlParams.solver = "stiffhr"; % "stiff" or "nonstiff"
-tSpan = [0,60]; %0:0.01:5;
+ctrlParams.solver = "GA"; % "stiff" or "nonstiff"
+tSpan = [0,30]; %0:0.01:5;
+% % ctrlParams.PID0 = [10 0 0]; 
+% % ctrlParams.PID1 = [10 0 0];
+% % ctrlParams.PID2 = [10 0 0];
 
 %% run simulation and plot states, forces, and states against reference
 theta = 2*pi*rand;
 rad = sqrt(rand);
-ctrlParams.refx = 1; %ctrlParams.a*rad*cos(theta);
-ctrlParams.refy = 1; %ctrlParams.b*rad*sin(theta);
+ctrlParams.refx = ctrlParams.a*rad*cos(theta);
+ctrlParams.refy = ctrlParams.b*rad*sin(theta);
 % x0 = [-1; 0; 0] + [2; 2*pi; 2*pi].*rand(3,1); % th0, th1, th2
 % x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
 x0 = [0; 0; 0; 0; 0; 0]; % th0, th0d, th1, th1d, th2, th2d
@@ -52,9 +55,13 @@ plot_endeffector([xend yend],y_simscape(:,15:16)) %y(:,15:16)
 
 %% Tune PID w/ GA
 N_monte_carlo = 100;
-myObj = @(gene) fitnessfun(gene, N_monte_carlo,ctrlParams,sysParams);
+tSpan = [0,60]; 
+POlim = 0.5;
+Ts_lim = tSpan(2)-10;
+Rise_thresh = 10;
+myObj = @(gene) fitnessfun(gene, N_monte_carlo,tSpan,POlim,Ts_lim,Rise_thresh,ctrlParams,sysParams);
 % GA parameters
-Pc = 0.85;
+Pc = 0.80;
 fitfun = @(x) myObj(x);
 PopSize = 200;
 MaxGens = 100;
@@ -63,8 +70,8 @@ A       = [];
 b       = [];
 Aeq     = [];               
 beq     = [];
-lb      = 100*ones(1,9);
-ub      = 1000*ones(1,9);
+lb      = 10*ones(1,9);
+ub      = 10000*ones(1,9);
 nonlcon = [];
 options = optimoptions('ga', 'PopulationSize', PopSize, 'MaxGenerations',...
     MaxGens,'PlotFcn',{@gaplotbestf,@gaplotscores});
@@ -220,19 +227,21 @@ function plot_endeffector(x,refs)
 
 end
 
-function [fit]  = fitnessfun(gene, N_monte_carlo,ctrlParams,sysParams)
+function [fit]  = fitnessfun(gene, N_monte_carlo,tSpan,POlim,Ts_lim,Rise_thresh,ctrlParams,sysParams)
 
 ctrlParams.PID0 = gene(1:3);
 ctrlParams.PID1 = gene(4:6);
 ctrlParams.PID2 = gene(7:9);
-tSpan = [0,20]; 
-ulim = 2000;
-xlim = 2;
-Ts_lim = 15;
 
-u_above_thresh = zeros(1,N_monte_carlo);
-settling_time_above_thresh = zeros(1,N_monte_carlo);
-x_above_thresh = zeros(1,N_monte_carlo);
+ts1_above_thresh = zeros(1,N_monte_carlo);
+ts2_above_thresh = zeros(1,N_monte_carlo);
+ts3_above_thresh = zeros(1,N_monte_carlo);
+x1_above_thresh = zeros(1,N_monte_carlo);
+x2_above_thresh = zeros(1,N_monte_carlo);
+x3_above_thresh = zeros(1,N_monte_carlo);
+rs1_above_thresh = zeros(1,N_monte_carlo);
+rs2_above_thresh = zeros(1,N_monte_carlo);
+rs3_above_thresh = zeros(1,N_monte_carlo);
 e1 = zeros(1,N_monte_carlo);
 e2 = zeros(1,N_monte_carlo);
 e3 = zeros(1,N_monte_carlo);
@@ -248,6 +257,10 @@ for sim_n = 1:N_monte_carlo
     x0 = [x0(1); 0; x0(2); 0; x0(3); 0]; % th0, th0d, th1, th1d, th2, th2d
     y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
     [~,~,~,~,~,~,xend,yend] = ForwardKinematics(y(:,2:4),sysParams);
+
+    if y(end,1) < tSpan(2)
+        break
+    end
 
     e1(sim_n) = abs(y(end,2) - y(end,19));
     e2(sim_n) = abs(y(end,3) - y(end,17));
@@ -265,48 +278,60 @@ for sim_n = 1:N_monte_carlo
 
     if x0(1) >= y(end,19)
         max1 = info1.Min;
+        Rt1 = info1.MinTime;
     else 
         max1 = info1.Max;
+        Rt1 = info1.MaxTime;
     end
 
     if x0(3) >= y(end,17)
         max2 = info2.Min;
+        Rt2 = info2.MinTime;
     else 
         max2 = info2.Max;
+        Rt2 = info2.MaxTime;
     end
 
     if x0(5) >= y(end,18)
         max3 = info3.Min;
+        Rt3 = info3.MinTime;
     else
         max3 = info3.Max;
+        Rt3 = info3.MaxTime;
     end
 
-    if max(abs(y(:,11))) > ulim || max(abs(y(:,12))) > ulim || max(abs(y(:,13))) > ulim
-        u_above_thresh(sim_n) = 1;
+    if Ts1 > Ts_lim  
+        ts1_above_thresh(sim_n) = 1;
+    elseif Ts2 > Ts_lim
+        ts2_above_thresh(sim_n) = 1;
+    elseif Ts3 > Ts_lim
+        ts3_above_thresh(sim_n) = 1;
     end
 
-    if Ts1 > Ts_lim || Ts2 > Ts_lim || Ts3 > Ts_lim
-        settling_time_above_thresh(sim_n) = 1;
+    if abs(max1 - y(end,19))/abs(x0(1) - y(end,19)) > POlim 
+        x1_above_thresh(sim_n) = 1;
+    elseif abs(max2 - y(end,17))/abs(x0(3) - y(end,17)) > POlim
+        x2_above_thresh(sim_n) = 1;
+    elseif abs(max3 - y(end,18))/abs(x0(5) - y(end,18)) > POlim
+        x3_above_thresh(sim_n) = 1;
     end
 
-    if abs(max1 - y(end,19)) > xlim || abs(max2 - y(end,17)) > xlim || abs(max3 - y(end,18)) > xlim
-        x_above_thresh(sim_n) = 1;
+    if Rt1 > Rise_thresh 
+        rs1_above_thresh(sim_n) = 1;
+    elseif Rt2 > Rise_thresh
+        rs2_above_thresh(sim_n) = 1;
+    elseif Rt3 > Rise_thresh
+        rs3_above_thresh(sim_n) = 1;
     end
 end
-% disp('monte carlo done')
-% disp(sum(x_above_thresh)/N_monte_carlo)
-% disp(sum(settling_time_above_thresh)/N_monte_carlo)
-% disp(sum(u_above_thresh)/N_monte_carlo)
-% disp(mean(e1))
-% disp(mean(e2))
-% disp(mean(e3))
-% disp(mean(exend))
-% disp(mean(eyend))
-% disp(Ts1)
-% disp(Ts2)
-% disp(Ts3)
 
 % fitness is weighted squared probability
-fit = (1e2)*((sum(x_above_thresh)/N_monte_carlo)^2 + (sum(settling_time_above_thresh)/N_monte_carlo)^2 ...
-    + (sum(u_above_thresh)/N_monte_carlo)^2 + 10*mean(e1) + 10*mean(e2) + 10*mean(e3) + 10*mean(exend) + 10*mean(eyend)); % 
+if sim_n < N_monte_carlo
+    fit = 1e5;
+else
+    fit = (1e2)*((sum(x1_above_thresh)/N_monte_carlo)^2 + (sum(x2_above_thresh)/N_monte_carlo)^2 + (sum(x3_above_thresh)/N_monte_carlo)^2 ...
+        + (sum(ts1_above_thresh)/N_monte_carlo)^2 + (sum(ts2_above_thresh)/N_monte_carlo)^2 + (sum(ts3_above_thresh)/N_monte_carlo)^2 ...
+        + (sum(rs1_above_thresh)/N_monte_carlo)^2 + (sum(rs2_above_thresh)/N_monte_carlo)^2 + (sum(rs3_above_thresh)/N_monte_carlo)^2 ...
+        + 10*mean(e1) + 10*mean(e2) + 10*mean(e3) + 100*mean(exend) + 100*mean(eyend)); % 
+end
 end
