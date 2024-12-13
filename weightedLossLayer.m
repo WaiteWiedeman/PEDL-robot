@@ -28,10 +28,10 @@ classdef weightedLossLayer < nnet.layer.RegressionLayer ...
             physicLoss = mse(f, fTarget);
 
             % End Effector loss
-            [~,~,~,~,xend,yend] = ForwardKinematics(Y(1:3),sysParams);
-            [~,~,~,~,xendTarget,yendTarget] = ForwardKinematics(T(1:3),sysParams);
-            endEff = [xend;yend];
-            endEffTarget = [xendTarget;yendTarget];
+            [~,~,~,~,xend1,yend1,xend2,yend2] = ForwardKinematics(Y(1:3),sysParams);
+            [~,~,~,~,xendTarget1,yendTarget1,xendTarget2,yendTarget2] = ForwardKinematics(T(1:3),sysParams);
+            endEff = [xend1;yend1;xend2;yend2];
+            endEffTarget = [xendTarget1;yendTarget1;xendTarget2;yendTarget2];
             endEffloss = mse(endEff,endEffTarget);
 
             % final loss, combining data loss and physics loss
