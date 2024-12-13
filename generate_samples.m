@@ -1,6 +1,6 @@
 function dataFile = generate_samples(sysParams, ctrlParams, trainParams)
 % Generate samples and save the data file into a subfolder "data\"
-    tSpan = [0,30];
+    tSpan = [0,20];
     dataFile = "trainingSamples.mat";
     % check whether need to regenerate samples
     regenerate_samples = 1; % by default, regrenerate samples
