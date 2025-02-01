@@ -1,8 +1,9 @@
 function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan, predInterval, numCase, numTime, type, show, initTime)
     % evaluate time span, larger time span will increase the simulation
     % time when complicated friction involved
-    th0 = linspace(-1,1,numCase);
-    th1 = linspace(0,2*pi,numCase);
+    x0 = zeros(6,1); % th0, th0d, th1, th1d, th2, th2d
+    theta = linspace(0,2*pi,numCase);
+    rad = linspace(0,1,numCase);
 
     % reference time points 
     switch trainParams.type
@@ -16,7 +17,8 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
             disp("unspecify type of model.")
     end
     for i = 1:numCase
-        x0 = [th0(i); 0; th1(i); 0; th1(i); 0]; % th0, th0d, th1, th1d, th2, th2d
+        ctrlParams.refx = ctrlParams.a*rad(i)*cos(theta(i));
+        ctrlParams.refy = ctrlParams.b*rad(i)*sin(theta(i));
         y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
         t = y(:,1);
         x = y(:,2:10);
