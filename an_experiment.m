@@ -1,7 +1,9 @@
-%% 
+%% clear workspace
 close all;
 clear; 
 clc;
+
+%% parameters
 sysParams = params_system();
 ctrlParams = params_control();
 trainParams = params_training();
@@ -23,6 +25,7 @@ dataFile = generate_samples(sysParams, ctrlParams, trainParams);
 if ~exist("\model\", 'dir')
    mkdir("model");
 end
+
 switch trainParams.type
     case "dnn6"
         [xTrain,yTrain,layers,options] = train_dnn_model_4(dataFile, trainParams);

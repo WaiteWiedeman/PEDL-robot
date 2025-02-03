@@ -209,8 +209,10 @@ function [loss, gradients] = modelLoss(net, xBatch, tBatch)
     trainParams = params_training();
 
     % Split inputs and targets into cell arrays
-    % xBatch = {};
-    % tBatch = {};
+    forcePreds = [];
+    forceTargets = [];
+    endEffPreds = [];
+    endEffTargets = [];
 
     [zBatch, ~] = forward(net, xBatch);
     dataLoss = mse(zBatch, tBatch);
@@ -222,168 +224,89 @@ function [loss, gradients] = modelLoss(net, xBatch, tBatch)
     i = 2; % intialize index
     while ~isempty(xBatch)
         if xBatch(:,i) ~= xBatch(:,i-1)
-            % xBatch = [xBatch X(:,1:i-1)];
-            % tBatch = [tBatch T(:,1:i-1)];
-            % X(:,1:i-1) = [];
-            % T(:,1:i-1) = [];
             X = xBatch(1:9,1:i-1); % initial states
             T = xBatch(10,1:i-1); % times
             Y = tBatch(:,1:i-1); % targets
             Z = zBatch(:,1:i-1); % prediction
 
-            % compute gradients using automatic differentiation
-            q1 = Z(1,:);
-            q2 = Z(2,:);
-            q3 = Z(3,:);
-            q1d = Z(4,:);
-            q2d = Z(5,:);
-            q3d = Z(6,:);
-            q1dd = Z(7,:);
-            q2dd = Z(8,:);
-            q3dd = Z(9,:);
-            % velocities calulated as gradient of position prediction
-            q1dn = gradient(extractdata(q1),T);
-            q2dn = gradient(extractdata(q2),T);
-            q3dn = gradient(extractdata(q3),T);
-            % accelerations calulated as gradient of velocity prediction
-            q1ddn = gradient(extractdata(q1d),T);
-            q2ddn = gradient(extractdata(q2d),T);
-            q3ddn = gradient(extractdata(q3d),T);
+            [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams);
+            
+            forcePreds = [forcePreds; fY];
+            forceTargets = [forceTargets; fT];
+            endEffPreds = [endEffPreds; endEff];
+            endEffTargets = [endEffTargets; endEffTarget];
 
-            q1ddn = gpuArray(dlarray(q1ddn, "CB"));
-            q2ddn = gpuArray(dlarray(q2ddn, "CB"));
-            q3ddn = gpuArray(dlarray(q3ddn, "CB"));
-            q1dn = gpuArray(dlarray(q1dn, "CB"));
-            q2dn = gpuArray(dlarray(q2dn, "CB"));
-            q3dn = gpuArray(dlarray(q3dn, "CB"));
-
-            fY = physics_law([q1;q2;q3;(0.5*q1d+0.5*q1dn);(0.5*q2d+0.5*q2dn);(0.5*q3d+0.5*q3dn);...
-                (0.5*q1dd+0.5*q1ddn);(0.5*q2dd+0.5*q2ddn);(0.5*q3dd+0.5*q3ddn)],sysParams);
-            fT = physics_law(Y,sysParams);
-            physicLoss(i) = mse(fY, fT);
-
-            [~,~,~,~,xend1,yend1,xend2,yend2] = ForwardKinematics(transpose(extractdata(Z(1:3,:))),sysParams);
-            [~,~,~,~,xendTarget1,yendTarget1,xendTarget2,yendTarget2] = ForwardKinematics(transpose(Y(1:3,:)),sysParams);
-
-            xend1 = gpuArray(dlarray(transpose(xend1), "CB"));
-            yend1 = gpuArray(dlarray(transpose(yend1), "CB"));
-            xend2 = gpuArray(dlarray(transpose(xend2), "CB"));
-            yend2 = gpuArray(dlarray(transpose(yend2), "CB"));
-            xendTarget1 = gpuArray(dlarray(transpose(xendTarget1), "CB"));
-            yendTarget1 = gpuArray(dlarray(transpose(yendTarget1), "CB"));
-            xendTarget2 = gpuArray(dlarray(transpose(xendTarget2), "CB"));
-            yendTarget2 = gpuArray(dlarray(transpose(yendTarget2), "CB"));
-
-            endEff = [xend1;yend1;xend2;yend2];
-            endEffTarget = [xendTarget1;yendTarget1;xendTarget2;yendTarget2];
-            endEffloss(i) = mse(endEff,endEffTarget);
+            xBatch(:,1:i-1) = [];
+            tBatch(:,1:i-1) = [];
+            zBatch(:,1:i-1) = [];
 
             i = 2;
         elseif i == length(xBatch)
-            xBatch = [xBatch X];
-            tBatch = [tBatch T];
-            X = [];
-            T = [];
+            X = xBatch(1:9,:); % initial states
+            T = xBatch(10,:); % times
+            Y = tBatch; % targets
+            Z = zBatch; % prediction
+
+            [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams);
+            
+            forcePreds = [forcePreds; fY];
+            forceTargets = [forceTargets; fT];
+            endEffPreds = [endEffPreds; endEff];
+            endEffTargets = [endEffTargets; endEffTarget];
+
+            xBatch = [];
+            tBatch = [];
+            zBatch = [];
         else
             i = i + 1;
         end
     end
+    % disp(size(xBatch))
+    % disp(size(tBatch))
+    % disp(size(zBatch))
+    % convert prediction and target vectors into dlarrays
+    forcePreds = gpuArray(dlarray(forcePreds, "CB"));
+    forceTargets = gpuArray(dlarray(forceTargets, "CB"));
+    endEffPreds = gpuArray(dlarray(endEffPreds, "CB"));
+    endEffTargets = gpuArray(dlarray(endEffTargets, "CB"));
     % total loss
-    loss = (1.0-trainParams.alpha-trainParams.beta)*sum(dataLoss,"all") + trainParams.alpha*sum(physicLoss,"all") + trainParams.beta*sum(endEffloss,"all");
+    physicLoss = mse(forcePreds, forceTargets);
+    endEffloss = mse(endEffPreds, endEffTargets);
+    loss = (1.0-trainParams.alpha-trainParams.beta)*dataLoss + trainParams.alpha*physicLoss + trainParams.beta*endEffloss;
     
     gradients = dlgradient(loss, net.Learnables);
-    % % calculate loss for each group collocation points
-    % dataLoss = gpuArray(dlarray(zeros(length(tBatch),1), "CB"));
-    % physicLoss = dataLoss;
-    % endEffloss = dataLoss;
-    % for i = 1:length(tBatch)
-    %     T = xBatch{i}(10,:);
-    %     X = xBatch{i}(1:9,:);
-    %     Y = tBatch{i};
-    % 
-    %     % make prediction
-    %     [Z, ~] = forward(net, [dlarray(X,"CB");dlarray(T,"CB")]);
-    %     dataLoss(i) = mse(Z, Y);
-    % 
-    %     % compute gradients using automatic differentiation
-    %     q1 = Z(1,:);
-    %     q2 = Z(2,:);
-    %     q3 = Z(3,:);
-    %     q1d = Z(4,:);
-    %     q2d = Z(5,:);
-    %     q3d = Z(6,:);
-    %     q1dd = Z(7,:);
-    %     q2dd = Z(8,:);
-    %     q3dd = Z(9,:);
-    % 
-    %     % velocities calulated as gradient of position prediction
-    %     q1dn = gradient(extractdata(q1),T);
-    %     q2dn = gradient(extractdata(q2),T);
-    %     q3dn = gradient(extractdata(q3),T);
-    %     % accelerations calulated as gradient of velocity prediction
-    %     q1ddn = gradient(extractdata(q1d),T);
-    %     q2ddn = gradient(extractdata(q2d),T);
-    %     q3ddn = gradient(extractdata(q3d),T);
-    % 
-    %     q1ddn = gpuArray(dlarray(q1ddn, "CB"));
-    %     q2ddn = gpuArray(dlarray(q2ddn, "CB"));
-    %     q3ddn = gpuArray(dlarray(q3ddn, "CB"));
-    %     q1dn = gpuArray(dlarray(q1dn, "CB"));
-    %     q2dn = gpuArray(dlarray(q2dn, "CB"));
-    %     q3dn = gpuArray(dlarray(q3dn, "CB"));
-    %     % fY = gpuArray(dlarray(zeros(3,length(T)), "CB"));
-    %     % fT = fY;
-    %     % for j = 1:length(T)
-    %     %     fY(:,j) = physics_law([q1(j);q2(j);q3(j);(0.5*q1d(j)+0.5*q1dn(j));(0.5*q2d(j)+0.5*q2dn(j));(0.5*q3d(j)+0.5*q3dn(j));...
-    %     %         q1dd(j);q2dd(j);q3dd(j)],sysParams);
-    %     %     fT(:,j) = physics_law(Y(:,j),sysParams);
-    %     % end
-    %     fY = physics_law([q1;q2;q3;(0.5*q1d+0.5*q1dn);(0.5*q2d+0.5*q2dn);(0.5*q3d+0.5*q3dn);...
-    %             (0.5*q1dd+0.5*q1ddn);(0.5*q2dd+0.5*q2ddn);(0.5*q3dd+0.5*q3ddn)],sysParams);
-    %     fT = physics_law(Y,sysParams);
-    %     % disp(fY)
-    %     % disp(fT)
-    %     physicLoss(i) = mse(fY, fT);
-    % 
-    %     % End Effector loss
-    %     % % xend1 = gpuArray(dlarray(zeros(length(T),1), "CB"));
-    %     % % yend1 = xend1;
-    %     % % xend2 = xend1;
-    %     % % yend2 = xend1;
-    %     % % xendTarget1 = xend1;
-    %     % % yendTarget1 = xend1;
-    %     % % xendTarget2 = xend1;
-    %     % % yendTarget2 = xend1;
-    %     % % endEff = gpuArray(dlarray(zeros(4,length(T)), "CB"));
-    %     % % endEffTarget = endEff;
-    %     % 
-    %     % % for j = 1:length(T)
-    %     % %     [~,~,~,~,xend1(j),yend1(j),xend2(j),yend2(j)] = ForwardKinematics(Z(1:3,j),sysParams);
-    %     % %     [~,~,~,~,xendTarget1(j),yendTarget1(j),xendTarget2(j),yendTarget2(j)] = ForwardKinematics(Y(1:3,j),sysParams);
-    %     % %     % endEff(:,j) = [xend1(j);yend1(j);xend2(j);yend2(j)];
-    %     % %     % endEffTarget(:,j) = [xendTarget1(j);yendTarget1(j);xendTarget2(j);yendTarget2(j)];
-    %     % % end
-    %     [~,~,~,~,xend1,yend1,xend2,yend2] = ForwardKinematics(transpose(extractdata(Z(1:3,:))),sysParams);
-    %     [~,~,~,~,xendTarget1,yendTarget1,xendTarget2,yendTarget2] = ForwardKinematics(transpose(Y(1:3,:)),sysParams);
-    % 
-    %     xend1 = gpuArray(dlarray(transpose(xend1), "CB"));
-    %     yend1 = gpuArray(dlarray(transpose(yend1), "CB"));
-    %     xend2 = gpuArray(dlarray(transpose(xend2), "CB"));
-    %     yend2 = gpuArray(dlarray(transpose(yend2), "CB"));
-    %     xendTarget1 = gpuArray(dlarray(transpose(xendTarget1), "CB"));
-    %     yendTarget1 = gpuArray(dlarray(transpose(yendTarget1), "CB"));
-    %     xendTarget2 = gpuArray(dlarray(transpose(xendTarget2), "CB"));
-    %     yendTarget2 = gpuArray(dlarray(transpose(yendTarget2), "CB"));
-    % 
-    %     endEff = [xend1;yend1;xend2;yend2];
-    %     endEffTarget = [xendTarget1;yendTarget1;xendTarget2;yendTarget2];
-    %     endEffloss(i) = mse(endEff,endEffTarget);
-    % end
-    % % total loss
-    % loss = (1.0-trainParams.alpha-trainParams.beta)*sum(dataLoss,"all") + trainParams.alpha*sum(physicLoss,"all") + trainParams.beta*sum(endEffloss,"all");
-    % 
-    % gradients = dlgradient(loss, net.Learnables);
-    
+end
+
+function [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams)
+    % compute gradients using automatic differentiation
+    q1 = Z(1,:);
+    q2 = Z(2,:);
+    q3 = Z(3,:);
+    q1d = Z(4,:);
+    q2d = Z(5,:);
+    q3d = Z(6,:);
+    q1dd = Z(7,:);
+    q2dd = Z(8,:);
+    q3dd = Z(9,:);
+
+    % velocities calulated as gradient of position prediction
+    q1dn = gradient(q1,T);
+    q2dn = gradient(q2,T);
+    q3dn = gradient(q3,T);
+    % accelerations calulated as gradient of velocity prediction
+    q1ddn = gradient(q1d,T);
+    q2ddn = gradient(q2d,T);
+    q3ddn = gradient(q3d,T);
+
+    fY = physics_law([q1;q2;q3;(0.5*q1d+0.5*q1dn);(0.5*q2d+0.5*q2dn);(0.5*q3d+0.5*q3dn);...
+        (0.5*q1dd+0.5*q1ddn);(0.5*q2dd+0.5*q2ddn);(0.5*q3dd+0.5*q3ddn)],sysParams);
+    fT = physics_law(Y,sysParams);
+
+    [~,~,~,~,xend1,yend1,xend2,yend2] = ForwardKinematics(transpose(Z(1:3,:)),sysParams);
+    [~,~,~,~,xendTarget1,yendTarget1,xendTarget2,yendTarget2] = ForwardKinematics(transpose(Y(1:3,:)),sysParams);
+
+    endEff = [xend1 yend1 xend2 yend2];
+    endEffTarget = [xendTarget1 yendTarget1 xendTarget2 yendTarget2];
 end
 
 function [X,T] = myMiniBatch(xBatch,yBatch)
