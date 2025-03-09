@@ -7,11 +7,12 @@ clc;
 sysParams = params_system();
 ctrlParams = params_control();
 trainParams = params_training();
-trainParams.numSamples = 400;
+trainParams.numSamples = 5000;
 trainParams.type = "pinn9"; % "dnn6","pinn6","dnn9","pinn9"
-trainParams.numLayers = 4;
+trainParams.numLayers = 5;
 trainParams.numNeurons = 256;
-modelFile = "model\"+trainParams.type+"_"+num2str(trainParams.numLayers)+"_"+num2str(trainParams.numNeurons)+".mat";
+% trainParams.numEpochs = 2;
+modelFile = "model\"+trainParams.type+"_"+num2str(trainParams.numLayers)+"_"+num2str(trainParams.numNeurons)+"_"+num2str(trainParams.numSamples)+".mat";
 
 %% generate samples
 if ~exist("\data\", 'dir')
@@ -41,7 +42,6 @@ switch trainParams.type
         plot(layers)
     case "pinn9"
         monitor = trainingProgressMonitor;
-        trainParams.numEpochs = 5;
         output = train_pinn_model_9(dataFile, trainParams,sysParams,ctrlParams,monitor);
         net = output.trainedNet;
     otherwise
@@ -50,8 +50,9 @@ end
 
 % training with numeric array data
 % trainLoss = info.TrainingLoss;
-save(modelFile, 'net');
+save(modelFile, 'net','monitor');
 % disp(info)
+% save("trainingoutput",'monitor')
 
 %% simulation 
 f1 = 20; % initial force input

@@ -114,6 +114,7 @@ function output = train_pinn_model_9(sampleFile, trainParams,sysParams,ctrlParam
     monitor.XLabel = "Iteration";
     
     net = train_adam_update(net, xTrain, yTrain, trainParams, monitor);
+    save("model\temp", 'net','monitor');
     output.trainedNet = net;
 
     ctrlParams.solver = "stiffhr"; % "stiff" or "normal"
@@ -203,7 +204,7 @@ function net = train_adam_update(net, xTrain, yTrain, trainParams, monitor)
 end
 
 %% loss function
-function [loss, gradients] = modelLoss(net, xBatch, tBatch)
+function [loss, gradients] = modelLoss(net, X, T)
     % Get parameters
     sysParams = params_system();
     trainParams = params_training();
@@ -214,56 +215,31 @@ function [loss, gradients] = modelLoss(net, xBatch, tBatch)
     endEffPreds = [];
     endEffTargets = [];
 
-    [zBatch, ~] = forward(net, xBatch);
-    dataLoss = mse(zBatch, tBatch);
+    [Z, ~] = forward(net, X);
+    dataLoss = mse(Z, T);
 
-    xBatch = extractdata(xBatch);
-    tBatch = extractdata(tBatch);
-    zBatch = extractdata(zBatch);
+    X = extractdata(X);
+    T = extractdata(T);
+    Z = extractdata(Z);
 
-    i = 2; % intialize index
-    while ~isempty(xBatch)
-        if xBatch(:,i) ~= xBatch(:,i-1)
-            X = xBatch(1:9,1:i-1); % initial states
-            T = xBatch(10,1:i-1); % times
-            Y = tBatch(:,1:i-1); % targets
-            Z = zBatch(:,1:i-1); % prediction
+    ids = find(diff(X(1,:)) ~= 0);
+    sz = size(X);
+    startIds = [1 ids+1];
+    endIds = [ids sz(2)];
 
-            [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams);
-            
-            forcePreds = [forcePreds; fY];
-            forceTargets = [forceTargets; fT];
-            endEffPreds = [endEffPreds; endEff];
-            endEffTargets = [endEffTargets; endEffTarget];
+    for i = 1:length(startIds)
+        Tc = X(10,startIds(i):endIds(i));
+        Yc = T(:,startIds(i):endIds(i)); % targets
+        Zc = Z(:,startIds(i):endIds(i)); % prediction
 
-            xBatch(:,1:i-1) = [];
-            tBatch(:,1:i-1) = [];
-            zBatch(:,1:i-1) = [];
+        [fY,fT,endEff,endEffTarget] = physicsloss(Tc,Yc,Zc,sysParams);
 
-            i = 2;
-        elseif i == length(xBatch)
-            X = xBatch(1:9,:); % initial states
-            T = xBatch(10,:); % times
-            Y = tBatch; % targets
-            Z = zBatch; % prediction
-
-            [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams);
-            
-            forcePreds = [forcePreds; fY];
-            forceTargets = [forceTargets; fT];
-            endEffPreds = [endEffPreds; endEff];
-            endEffTargets = [endEffTargets; endEffTarget];
-
-            xBatch = [];
-            tBatch = [];
-            zBatch = [];
-        else
-            i = i + 1;
-        end
+        forcePreds = [forcePreds; fY];
+        forceTargets = [forceTargets; fT];
+        endEffPreds = [endEffPreds; endEff];
+        endEffTargets = [endEffTargets; endEffTarget];
     end
-    % disp(size(xBatch))
-    % disp(size(tBatch))
-    % disp(size(zBatch))
+    % disp(size(forcePreds))
     % convert prediction and target vectors into dlarrays
     forcePreds = gpuArray(dlarray(forcePreds, "CB"));
     forceTargets = gpuArray(dlarray(forceTargets, "CB"));
