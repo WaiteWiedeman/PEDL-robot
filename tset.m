@@ -111,27 +111,40 @@ mbq = minibatchqueue(dsTrain,...
 shuffle(mbq)
 [X,T] = next(mbq);
 
-xBatch = {};
-tBatch = {};
+% xBatch = {};
+% tBatch = {};
 X = extractdata(X);
 T = extractdata(T);
-i = 2;
-while ~isempty(X)
-    if X(:,i) ~= X(:,i-1)
-        xBatch = [xBatch X(:,1:i-1)];
-        tBatch = [tBatch T(:,1:i-1)];
-        X(:,1:i-1) = [];
-        T(:,1:i-1) = [];
-        i = 2;
-    elseif i == length(X)
-        xBatch = [xBatch X];
-        tBatch = [tBatch T];
-        X = [];
-        T = [];
-    else
-        i = i + 1;
-    end
+
+ids = find(diff(X(1,:)) ~= 0);
+sz = size(X);
+startIds = [1 ids+1];
+endIds = [ids sz(2)];
+q1d = zeros(1,sz(2));
+
+for i = 1:length(startIds)
+    td = X(10,startIds(i):endIds(i));
+    y = T(1,startIds(i):endIds(i));
+    q1d(startIds(i):endIds(i)) = gradient(y,td);
 end
+gradErr = T(4,:) - q1d;
+% i = 2;
+% while ~isempty(X)
+%     if X(:,i) ~= X(:,i-1)
+%         xBatch = [xBatch X(:,1:i-1)];
+%         tBatch = [tBatch T(:,1:i-1)];
+%         X(:,1:i-1) = [];
+%         T(:,1:i-1) = [];
+%         i = 2;
+%     elseif i == length(X)
+%         xBatch = [xBatch X];
+%         tBatch = [tBatch T];
+%         X = [];
+%         T = [];
+%     else
+%         i = i + 1;
+%     end
+% end
 
 % iter = 0;
 % epoch = 0;
