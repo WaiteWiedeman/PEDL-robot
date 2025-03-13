@@ -77,7 +77,7 @@ for i = 1:numSamples
         for z = 1:nmGrps
             startIdx = (z-1)*trainParams.nmPts + 1;
             endIdx = min(z*trainParams.nmPts, dataSize);
-            if length(xGroup(startIdx:endIdx)) < 10
+            if length(xGroup(startIdx:endIdx)) < (trainParams.nmPts/5)
                 xTrain(end) = {[cell2mat(xTrain(end)) xGroup(:,startIdx:endIdx)]};
                 yTrain(end) = {[cell2mat(yTrain(end)) yGroup(:,startIdx:endIdx)]};
             else
@@ -118,16 +118,22 @@ T = extractdata(T);
 
 ids = find(diff(X(1,:)) ~= 0);
 sz = size(X);
-startIds = [1 ids+1];
-endIds = [ids sz(2)];
-q1d = zeros(1,sz(2));
+% startIds = [ids+1];
+boundaryIds = [ids+1 ids sz(2)];
 
-for i = 1:length(startIds)
-    td = X(10,startIds(i):endIds(i));
-    y = T(1,startIds(i):endIds(i));
-    q1d(startIds(i):endIds(i)) = gradient(y,td);
-end
-gradErr = T(4,:) - q1d;
+q1d = gradient(T(1,:),X(10,:)); %zeros(1,sz(2));
+
+q1dtrue = T(4,:);
+
+q1d(boundaryIds) = [];
+q1dtrue(boundaryIds) = [];
+
+% for i = 1:length(startIds)
+%     td = X(10,startIds(i):endIds(i));
+%     y = T(1,startIds(i):endIds(i));
+%     q1d(startIds(i):endIds(i)) = gradient(y,td);
+% end
+gradErr = q1dtrue - q1d;
 % i = 2;
 % while ~isempty(X)
 %     if X(:,i) ~= X(:,i-1)

@@ -1,4 +1,4 @@
-function [xTrain,yTrain,layers,options] = train_pgnn_model(sampleFile, trainParams)
+function [xTrain,yTrain,layers,options] = train_dnn_model_9(sampleFile, trainParams)
 % Train a DNN model for learning dynamics system behvior
     % load samples and prepare training dataset
     ds = load(sampleFile);
@@ -60,7 +60,7 @@ function [xTrain,yTrain,layers,options] = train_pgnn_model(sampleFile, trainPara
     layers = [
         layers
         fullyConnectedLayer(numStates, "Name", "output")
-        weightedLossLayer("mse")]; % weightedLossLayer("mse")
+        regressionLayer]; % weightedLossLayer("mse")
 
     layers = layerGraph(layers);
     % plot(lgraph);

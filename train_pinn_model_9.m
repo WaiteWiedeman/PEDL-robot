@@ -46,7 +46,7 @@ function output = train_pinn_model_9(sampleFile, trainParams,sysParams,ctrlParam
             for z = 1:nmGrps
                 startIdx = (z-1)*trainParams.nmPts + 1;
                 endIdx = min(z*trainParams.nmPts, dataSize);
-                if length(xGroup(startIdx:endIdx)) < 10
+                if length(xGroup(startIdx:endIdx)) < (trainParams.nmPts/5)
                     xTrain(end) = {[cell2mat(xTrain(end)) xGroup(:,startIdx:endIdx)]};
                     yTrain(end) = {[cell2mat(yTrain(end)) yGroup(:,startIdx:endIdx)]};
                 else
@@ -210,10 +210,6 @@ function [loss, gradients] = modelLoss(net, X, T)
     trainParams = params_training();
 
     % Split inputs and targets into cell arrays
-    forcePreds = [];
-    forceTargets = [];
-    endEffPreds = [];
-    endEffTargets = [];
 
     [Z, ~] = forward(net, X);
     dataLoss = mse(Z, T);
@@ -224,36 +220,32 @@ function [loss, gradients] = modelLoss(net, X, T)
 
     ids = find(diff(X(1,:)) ~= 0);
     sz = size(X);
-    startIds = [1 ids+1];
-    endIds = [ids sz(2)];
+    boundaryIds = [ids+1 ids sz(2)];
 
-    for i = 1:length(startIds)
-        Tc = X(10,startIds(i):endIds(i));
-        Yc = T(:,startIds(i):endIds(i)); % targets
-        Zc = Z(:,startIds(i):endIds(i)); % prediction
-
-        [fY,fT,endEff,endEffTarget] = physicsloss(Tc,Yc,Zc,sysParams);
-
-        forcePreds = [forcePreds; fY];
-        forceTargets = [forceTargets; fT];
-        endEffPreds = [endEffPreds; endEff];
-        endEffTargets = [endEffTargets; endEffTarget];
-    end
-    % disp(size(forcePreds))
+    % disp(size(X))
+    [fY,fT,endEff,endEffTarget] = physicsloss(X(10,:),T,Z,boundaryIds,sysParams);
+    % disp(size(fY))
+    % disp(size(fT))
+    % disp(size(endEff))
+    % disp(size(endEffTarget))
     % convert prediction and target vectors into dlarrays
-    forcePreds = gpuArray(dlarray(forcePreds, "CB"));
-    forceTargets = gpuArray(dlarray(forceTargets, "CB"));
-    endEffPreds = gpuArray(dlarray(endEffPreds, "CB"));
-    endEffTargets = gpuArray(dlarray(endEffTargets, "CB"));
+    forcePreds = dlarray(fY, "CB");
+    forceTargets = dlarray(fT, "CB");
+    endEffPreds = dlarray(endEff, "CB");
+    endEffTargets = dlarray(endEffTarget, "CB");
+    
     % total loss
     physicLoss = mse(forcePreds, forceTargets);
     endEffloss = mse(endEffPreds, endEffTargets);
+    % disp(dataLoss)
+    % disp(physicLoss)
+    % disp(endEffloss)
     loss = (1.0-trainParams.alpha-trainParams.beta)*dataLoss + trainParams.alpha*physicLoss + trainParams.beta*endEffloss;
     
     gradients = dlgradient(loss, net.Learnables);
 end
 
-function [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams)
+function [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,ids,sysParams)
     % compute gradients using automatic differentiation
     q1 = Z(1,:);
     q2 = Z(2,:);
@@ -273,6 +265,25 @@ function [fY,fT,endEff,endEffTarget] = physicsloss(T,Y,Z,sysParams)
     q1ddn = gradient(q1d,T);
     q2ddn = gradient(q2d,T);
     q3ddn = gradient(q3d,T);
+
+    % remove values at boundary 
+    q1(ids) = [];
+    q2(ids) = [];
+    q3(ids) = [];
+    q1d(ids) = [];
+    q2d(ids) = [];
+    q3d(ids) = [];
+    q1dd(ids) = [];
+    q2dd(ids) = [];
+    q3dd(ids) = [];
+    q1dn(ids) = [];
+    q2dn(ids) = [];
+    q3dn(ids) = [];
+    q1ddn(ids) = [];
+    q2ddn(ids) = [];
+    q3ddn(ids) = [];
+    Y(:,ids) = [];
+    Z(:,ids) = [];
 
     fY = physics_law([q1;q2;q3;(0.5*q1d+0.5*q1dn);(0.5*q2d+0.5*q2dn);(0.5*q3d+0.5*q3dn);...
         (0.5*q1dd+0.5*q1ddn);(0.5*q2dd+0.5*q2ddn);(0.5*q3dd+0.5*q3ddn)],sysParams);
