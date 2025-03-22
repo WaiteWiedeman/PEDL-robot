@@ -1,4 +1,4 @@
-function xp = predict_motion(net, type, t, x, predInterval, seqSteps, initTime)
+function [xp, tPred] = predict_motion(net, type, t, x, predInterval, seqSteps, initTime)
     numTime = length(t);
     initIdx = find(t > initTime, 1, 'first'); % start where force stop acting
     switch type
@@ -12,7 +12,9 @@ function xp = predict_motion(net, type, t, x, predInterval, seqSteps, initTime)
                     t0 = t(i-1);
                     x0 = xp(i-1, :);
                 end
+                tic
                 xp(i,:) = predict(net, [x0, t(i)-t0]);
+                tEnds(i) = toc;
             end
         case "lstm9"
             xp = zeros(numTime, 9);
@@ -42,7 +44,9 @@ function xp = predict_motion(net, type, t, x, predInterval, seqSteps, initTime)
                     t0 = t(i-1);
                     x0 = xp(i-1, :);
                 end
+                tic
                 xp(i,:) = extractdata(predict(net, dlarray([x0, t(i)-t0]', 'CB')));
+                tEnds(i) = toc;
             end
         case "dnn6"
             xp = zeros(numTime, 6);
@@ -131,4 +135,5 @@ function xp = predict_motion(net, type, t, x, predInterval, seqSteps, initTime)
         otherwise
             disp("unspecified type of model");
     end
+    tPred = mean(tEnds,"all");
 end

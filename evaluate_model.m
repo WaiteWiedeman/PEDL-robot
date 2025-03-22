@@ -1,4 +1,4 @@
-function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan, predInterval, numCase, numTime, type, show, initTime)
+function [avgErr,errs,tPred,tSim] = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan, predInterval, numCase, numTime, type, show, initTime)
     % evaluate time span, larger time span will increase the simulation
     % time when complicated friction involved
     x0 = zeros(6,1); % th0, th0d, th1, th1d, th2, th2d
@@ -19,12 +19,15 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
     for i = 1:numCase
         ctrlParams.refx = ctrlParams.a*rad(i)*cos(theta(i));
         ctrlParams.refy = ctrlParams.b*rad(i)*sin(theta(i));
+        tic
         y = robot_simulation(tSpan, x0, sysParams, ctrlParams);
+        tEnd(i) = toc;
         t = y(:,1);
         x = y(:,2:10);
-        [xp, rmseErr, refTime] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type, initTime);
+        [xp, rmseErr, refTime,tPred(i)] = evaluate_single(net, t, x, ctrlParams, trainParams, tSpan, predInterval, numTime, type, initTime);
         if show
-            disp("evaluate " + num2str(i) + " th case, mean square err: " + num2str(mean(rmseErr, "all")));
+            disp("evaluate " + num2str(i) + " th case, at point " +  num2str(ctrlParams.refx) + ","+  num2str(ctrlParams.refy) + ...
+                " mean square err: " + num2str(mean(rmseErr, "all")));
         end
         switch trainParams.type
             case {"dnn3", "lstm3", "pinn3", "pirn3"} 
@@ -37,7 +40,8 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
                 disp("unspecify type of model.")
         end
     end
-    
+    tSim = mean(tEnd,"all");
+    tPred = mean(tPred,"all");
     avgErr = mean(errs,'all'); % one value of error for estimtation
     if show
         disp("plot time step rsme")
@@ -51,6 +55,5 @@ function avgErr = evaluate_model(net, sysParams, ctrlParams, trainParams, tSpan,
         set(gca, 'FontSize', 15);
     end
 end
-
 
 
